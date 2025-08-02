@@ -16,7 +16,7 @@ import (
 // provider flow -> kept provider in a struct and Init -> when its time to use the provider, check ok -> if no, error out -> if yes, set the on image
 // when its time for outsies, set the on image to nil
 
-const FETCH_INTERVAL = time.Duration(1500 * time.Millisecond)
+const FETCH_INTERVAL = time.Duration(1700 * time.Millisecond)
 
 type Provider struct {
 	oAuthConfig   *oauth2.Config
@@ -34,7 +34,7 @@ func (p *Provider) Init() error {
 	}
 	p.currentClient = nil
 
-	http.HandleFunc("/spotify/redirect", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/v1/spotify/redirect", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		if code == "" {
 			http.Error(w, "no code provided", http.StatusBadRequest)
@@ -51,10 +51,9 @@ func (p *Provider) Init() error {
 		p.currentClient = client
 	})
 
-	http.HandleFunc("/spotify/auth", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/v1/spotify/auth", func(w http.ResponseWriter, r *http.Request) {
 		location := p.oAuthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline)
-		w.WriteHeader(http.StatusFound)
-		w.Header().Add("Location", location)
+		http.Redirect(w, r, location, http.StatusFound)
 	})
 
 	return nil
@@ -69,12 +68,14 @@ func (p *Provider) Start(onImageFunc func(io.Reader)) {
 
 	var lastImageURL string
 	for p.working {
+		time.Sleep(FETCH_INTERVAL)
 		u, err := p.getCurrentlyPlayingImageURL()
 		if err != nil {
 			slog.Error("get currently playing image URL", "error", err)
 			continue
 		}
 		if u == lastImageURL {
+			slog.Info("no new image URL, skipping", "url", u)
 			continue
 		}
 
@@ -91,7 +92,6 @@ func (p *Provider) Start(onImageFunc func(io.Reader)) {
 		rd.Close() // close the reader after passing it to the callback
 
 		lastImageURL = u
-		time.Sleep(FETCH_INTERVAL)
 	}
 }
 
