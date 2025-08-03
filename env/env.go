@@ -13,6 +13,7 @@ type Environment struct {
 	SpotifyRedirectURI  string
 	SpotifyScopes       string
 	DisplayServerURL    string
+	Debug               bool
 }
 
 var DefaultEnvironment = Environment{}
@@ -25,6 +26,7 @@ func Init() error {
 		SpotifyRedirectURI:  dv(os.Getenv("SPOTIFY_REDIRECT_URI"), "http://127.0.0.1:9000/api/v1/spotify/redirect"),
 		SpotifyScopes:       dv(os.Getenv("SPOTIFY_SCOPES"), "user-read-playback-state"),
 		DisplayServerURL:    dv(os.Getenv("DISPLAY_SERVER_URL"), "http://127.0.1:14366"),
+		Debug:               os.Getenv("DEBUG") == "true",
 	}
 	if DefaultEnvironment.SpotifyClientID == "" ||
 		DefaultEnvironment.SpotifyClientSecret == "" {

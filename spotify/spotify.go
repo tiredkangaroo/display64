@@ -49,6 +49,10 @@ func (p *Provider) Init() error {
 
 		client := p.oAuthConfig.Client(r.Context(), token)
 		p.currentClient = client
+
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintln(w,
+			"<html><body><h1>Authorization successful!</h1><p>You can close this window.</p></body><script>window.open(\"\", \"_self\");window.close();</script></html>")
 	})
 
 	http.HandleFunc("/api/v1/spotify/auth", func(w http.ResponseWriter, r *http.Request) {
@@ -62,11 +66,16 @@ func (p *Provider) Init() error {
 func (p *Provider) Authorized() bool {
 	return p.currentClient != nil
 }
+func (p *Provider) AuthorizationURL() string {
+	if env.DefaultEnvironment.Debug {
+		return "http://localhost:9000/api/v1/spotify/auth"
+	}
+	return "/api/v1/spotify/auth"
+}
 
-func (p *Provider) Start(onImageFunc func(io.Reader)) {
+func (p *Provider) Start(onImageFunc func(u string)) {
 	p.working = true
 
-	var lastImageURL string
 	for p.working {
 		time.Sleep(FETCH_INTERVAL)
 		u, err := p.getCurrentlyPlayingImageURL()
@@ -74,24 +83,7 @@ func (p *Provider) Start(onImageFunc func(io.Reader)) {
 			slog.Error("get currently playing image URL", "error", err)
 			continue
 		}
-		if u == lastImageURL {
-			slog.Info("no new image URL, skipping", "url", u)
-			continue
-		}
-
-		rd, err := getResponseBodyFromURL(u)
-		if err != nil {
-			if rd != nil { // ensure we close the reader if it was opened
-				rd.Close()
-			}
-			slog.Error("get response body from URL", "error", err, "url", u)
-			continue
-		}
-
-		onImageFunc(rd)
-		rd.Close() // close the reader after passing it to the callback
-
-		lastImageURL = u
+		onImageFunc(u)
 	}
 }
 

@@ -39,5 +39,6 @@ func main() {
 	http.Handle("/", http.FileServerFS(distFS))
 	go http.ListenAndServe(":9000", nil)
 
+	providers.Start(providers.NoProvider)
 	select {}
 }

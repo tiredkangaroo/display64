@@ -1,8 +1,10 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"github.com/tiredkangaroo/display64/env"
 	"github.com/tiredkangaroo/display64/providers"
 )
 
@@ -10,9 +12,24 @@ func UseHandler(providers *providers.Providers) http.Handler {
 	mux := http.NewServeMux()
 
 	// Define API routes
-	mux.HandleFunc("/v1/providers/start", func(w http.ResponseWriter, r *http.Request) {
-		providerName := r.URL.Query().Get("name")
 
+	mux.HandleFunc("GET /v1/providers", func(w http.ResponseWriter, r *http.Request) {
+		cors(w)
+
+		data, err := json.Marshal(providers.List())
+		if err != nil {
+			http.Error(w, "failed to marshal providers: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	})
+
+	mux.HandleFunc("PUT /v1/providers/start", func(w http.ResponseWriter, r *http.Request) {
+		cors(w)
+
+		providerName := r.URL.Query().Get("name")
 		provider, ok := providers.GetProvider(providerName)
 		if !ok {
 			http.Error(w, "provider not found", http.StatusNotFound)
@@ -28,5 +45,17 @@ func UseHandler(providers *providers.Providers) http.Handler {
 		w.Write([]byte("Provider started successfully"))
 	})
 
+	mux.HandleFunc("OPTIONS /", func(w http.ResponseWriter, r *http.Request) {
+		cors(w)
+		w.WriteHeader(http.StatusOK)
+	})
 	return mux
+}
+
+func cors(w http.ResponseWriter) {
+	if env.DefaultEnvironment.Debug {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	}
 }
