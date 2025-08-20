@@ -13,6 +13,8 @@ import (
 	"golang.org/x/oauth2/spotify"
 )
 
+const NTS_LINK = "https://hc-cdn.hel1.your-objectstorage.com/s/v3/81ddba41db872a37a630dbb071f57ba4f916b019_image.png"
+
 // provider flow -> kept provider in a struct and Init -> when its time to use the provider, check ok -> if no, error out -> if yes, set the on image
 // when its time for outsies, set the on image to nil
 
@@ -114,6 +116,9 @@ func (p *Provider) getCurrentlyPlayingImageURL() (string, error) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("read response body: %w", err)
+	}
+	if len(body) == 0 { // nothing playing atm
+		return NTS_LINK, nil
 	}
 	var spResp spotifyResponse
 	if err := json.Unmarshal(body, &spResp); err != nil {
