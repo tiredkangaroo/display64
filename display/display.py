@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify
 from PIL import Image
 from io import BytesIO
-import os
+import os, sys
 
 debug = True if os.environ.get('DEBUG') == 'true' else False
 
 matrix = None
 if not debug:
+    sys.path.append('/home/pi/rpi-rgb-led-matrix/bindings/python')
     from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
     options = RGBMatrixOptions()
     options.brightness = 80
@@ -32,15 +33,18 @@ def upload_file():
         return jsonify({'error': 'No selected file'}), 422
 
     try:
-        img = Image.open(BytesIO(file.read()))
+        img = Image.open(file)
         if debug:
             img.show()
         else:
-            image.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
-            matrix.SetImage(image)
+            img.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
+            print(f"Image size after resize: {img.size}")
+            print(f"{matrix}")
+            matrix.SetImage(img.convert("RGB"))
         return jsonify({'message': 'Image successfully processed'}), 200
     except Exception as e:
+        print("invalid image file", e)
         return jsonify({'error': 'Invalid image file'}), 422
 
 if __name__ == '__main__':
-    app.run(debug=True, port=14366, host='0.0.0.0')
+    app.run(debug=debug, port=14366, host='0.0.0.0', use_reloader=False)
