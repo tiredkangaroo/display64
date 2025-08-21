@@ -37,10 +37,10 @@ def upload_file():
         if debug:
             img.show()
         else:
-            img.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
+            img.thumbnail((matrix.width, matrix.height), Image.LANCZOS)
             print(f"Image size after resize: {img.size}")
             print(f"{matrix}")
-            matrix.SetImage(img.convert("RGB"))
+            matrix.SetImage(img.convert("RGB"), unsafe=False)
         return jsonify({'message': 'Image successfully processed'}), 200
     except Exception as e:
         print("invalid image file", e)
