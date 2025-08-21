@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,7 +50,7 @@ func (p *Provider) Init() error {
 			return
 		}
 
-		client := p.oAuthConfig.Client(r.Context(), token)
+		client := p.oAuthConfig.Client(context.Background(), token)
 		p.currentClient = client
 
 		w.Header().Set("Content-Type", "text/html")
