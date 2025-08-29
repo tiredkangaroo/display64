@@ -10,7 +10,7 @@ if not debug:
     sys.path.append('/home/pi/rpi-rgb-led-matrix/bindings/python')
     from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
     options = RGBMatrixOptions()
-    options.brightness = 80
+    options.brightness = 50
     options.rows = 64
     options.cols = 64
     options.chain_length = 1
@@ -51,7 +51,13 @@ def set_option(option_name):
     value = request.args.get('value')
     if not value:
         return jsonify({'error': 'No value provided'}), 400
-    setattr(options, option_name, value)
+    
+    attr = getattr(options, option_name, None)
+    if attr is None:
+        return jsonify({'error': 'Option not found'}), 404
+    value_with_attrtype = attr.__class__(value)
+    setattr(options, option_name, value_with_attrtype)
+    # matrix = RGBMatrix(options=options)
     return "", 200
 
 @app.route("/options", methods=["GET"])
