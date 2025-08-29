@@ -60,6 +60,7 @@ func (p *Providers) Start(provider Provider) error {
 			slog.Info("image URL is the same as last, skip", "url", u)
 			return
 		}
+		slog.Info("sending image to display", "url", u)
 		if err := sendURLToDisplay(u); err != nil {
 			slog.Error("sending image to display", "error", err)
 		} else {

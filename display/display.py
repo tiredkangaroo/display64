@@ -46,5 +46,25 @@ def upload_file():
         print("invalid image file", e)
         return jsonify({'error': 'Invalid image file'}), 422
 
+@app.route('/set/<option_name>', methods=["PATCH"])
+def set_option(option_name):
+    value = request.args.get('value')
+    if not value:
+        return jsonify({'error': 'No value provided'}), 400
+    setattr(options, option_name, value)
+    return "", 200
+
+@app.route("/options", methods=["GET"])
+def list_options():
+    opts = {k: v for k, v in options.__dict__.items() if not k.startswith('_')}
+    return jsonify(opts), 200
+
+@app.route('/get/<option_name>', methods=["GET"])
+def get_option(option_name):
+    value = getattr(options, option_name, None)
+    if value is None:
+        return jsonify({'error': 'Option not found'}), 404
+    return jsonify({'value': value}), 200
+
 if __name__ == '__main__':
     app.run(debug=debug, port=14366, host='0.0.0.0', use_reloader=False)
