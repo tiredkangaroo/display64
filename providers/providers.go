@@ -2,11 +2,18 @@ package providers
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
-	"io"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	"image/png"
+	_ "image/png"
 	"log/slog"
-	"mime/multipart"
 	"net/http"
+
+	"golang.org/x/image/draw"
+	_ "golang.org/x/image/webp"
 
 	"github.com/tiredkangaroo/display64/env"
 	"github.com/tiredkangaroo/display64/noprovider"
@@ -57,7 +64,6 @@ func (p *Providers) Start(provider Provider) error {
 
 	go p.Current.Start(func(u string) {
 		if u == p.LastImageURL {
-			slog.Info("image URL is the same as last, skip", "url", u)
 			return
 		}
 		slog.Info("sending image to display", "url", u)
@@ -116,33 +122,32 @@ func sendURLToDisplay(u string) error {
 	}
 	defer resp.Body.Close()
 
-	rd := resp.Body
-	// create a multipart form with rd
+	img, _, err := image.Decode(resp.Body)
+	if err != nil {
+		return fmt.Errorf("decode image: %w", err)
+	}
+
+	// img -> rgba conversion
+	bounds := img.Bounds()
+	rgbImg := image.NewRGBA(bounds)
+	draw.Draw(rgbImg, bounds, img, bounds.Min, draw.Src)
+
+	// the rgba image to 64x64
+	thumb := image.NewRGBA(image.Rect(0, 0, 64, 64))
+	draw.CatmullRom.Scale(thumb, thumb.Bounds(), rgbImg, bounds, draw.Over, nil)
+
 	buf := new(bytes.Buffer)
-	writer := multipart.NewWriter(buf)
-	part, err := writer.CreateFormFile("file", "image.png")
-	if err != nil {
-		return fmt.Errorf("create form file: %w", err)
+	if err := png.Encode(buf, thumb); err != nil {
+		return fmt.Errorf("encode image: %w", err)
 	}
-	if _, err := io.Copy(part, rd); err != nil {
-		return fmt.Errorf("copy image data: %w", err)
-	}
-	writer.Close()
 
-	req, err = http.NewRequest("POST", env.DefaultEnvironment.DisplayServerURL+"/use", buf)
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+	var imgLengthData [8]byte
+	binary.BigEndian.PutUint64(imgLengthData[:], uint64(buf.Len()))
+	if _, err := env.DefaultEnvironment.DisplayConnection.Write(imgLengthData[:]); err != nil {
+		return fmt.Errorf("send image length to display: %w", err)
 	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("send request: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("server error: %s", body)
+	if _, err := buf.WriteTo(env.DefaultEnvironment.DisplayConnection); err != nil {
+		return fmt.Errorf("send image to display: %w", err)
 	}
 	return nil
 }

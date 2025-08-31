@@ -1,7 +1,7 @@
-from flask import Flask, request, jsonify
 from PIL import Image
 from io import BytesIO
-import os, sys
+import os, sys, socket
+import struct
 
 debug = True if os.environ.get('DEBUG') == 'true' else False
 
@@ -21,56 +21,27 @@ if not debug:
     options.hardware_mapping = 'adafruit-hat-pwm'
     matrix = RGBMatrix(options = options)
 
-app = Flask(__name__)
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind(('0.0.0.0', 14366))
+    s.listen()
+    print("Listening for connections...")
+    while True:
+        conn, addr = s.accept()
+        with conn:
+            print(f"Connected by {addr}")
+            while True:
+                length = conn.recv(8)
+                if not length:
+                    break
+                length = struct.unpack('>Q', length)[0]
+                print(f"Image data length: {length}")
 
-@app.route('/use', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 422
-
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 422
-
-    try:
-        img = Image.open(file)
-        if debug:
-            img.show()
-        else:
-            img.thumbnail((matrix.width, matrix.height), Image.LANCZOS)
-            print(f"Image size after resize: {img.size}")
-            print(f"{matrix}")
-            matrix.SetImage(img.convert("RGB"), unsafe=False)
-        return jsonify({'message': 'Image successfully processed'}), 200
-    except Exception as e:
-        print("invalid image file", e)
-        return jsonify({'error': 'Invalid image file'}), 422
-
-@app.route('/set/<option_name>', methods=["PATCH"])
-def set_option(option_name):
-    value = request.args.get('value')
-    if not value:
-        return jsonify({'error': 'No value provided'}), 400
-    
-    attr = getattr(options, option_name, None)
-    if attr is None:
-        return jsonify({'error': 'Option not found'}), 404
-    value_with_attrtype = attr.__class__(value)
-    setattr(options, option_name, value_with_attrtype)
-    # matrix = RGBMatrix(options=options)
-    return "", 200
-
-@app.route("/options", methods=["GET"])
-def list_options():
-    opts = {k: v for k, v in options.__dict__.items() if not k.startswith('_')}
-    return jsonify(opts), 200
-
-@app.route('/get/<option_name>', methods=["GET"])
-def get_option(option_name):
-    value = getattr(options, option_name, None)
-    if value is None:
-        return jsonify({'error': 'Option not found'}), 404
-    return jsonify({'value': value}), 200
-
-if __name__ == '__main__':
-    app.run(debug=debug, port=14366, host='0.0.0.0', use_reloader=False)
+                data = conn.recv(length) # receive image data
+                if not data:
+                    break
+                img = Image.open(BytesIO(data)) # make pil image (no conversions needed to RGB, go will handle that)
+                if debug:
+                    img.show()
+                else:
+                    matrix.SetImage(img, unsafe=False)
+            print(f"Connection with {addr} closed")
