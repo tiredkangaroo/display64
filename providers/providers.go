@@ -29,7 +29,8 @@ type Providers struct {
 	NoProvider Provider
 	Spotify    *spotify.Provider
 
-	LastImageURL string
+	LastImageURL    string
+	NewImageURLFunc func(string)
 }
 
 type Provider interface {
@@ -65,6 +66,8 @@ func (p *Providers) Start(provider Provider) error {
 	go p.Current.Start(func(u string) {
 		if u == p.LastImageURL {
 			return
+		} else if p.NewImageURLFunc != nil {
+			p.NewImageURLFunc(u)
 		}
 		slog.Info("sending image to display", "url", u)
 		if err := sendURLToDisplay(u); err != nil {

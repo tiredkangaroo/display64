@@ -1,5 +1,7 @@
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+github.com/tiredkangaroo/websocket v0.0.0-20250331164906-3c827d2ce87b h1:LtKSBUpccUC0oIt5Zf2CWZoc9kk080T3exlVltGw2Ts=
+github.com/tiredkangaroo/websocket v0.0.0-20250331164906-3c827d2ce87b/go.mod h1:kzR3gnf5qdlc3qRSJ7KPKCaD4/7VF2wYRyVQiZ9xxxI=
 golang.org/x/image v0.30.0 h1:jD5RhkmVAnjqaCUXfbGBrn3lpxbknfN9w2UhHHU+5B4=
 golang.org/x/image v0.30.0/go.mod h1:SAEUTxCCMWSrJcCy/4HwavEsfZZJlYxeHLc6tTiAe/c=
 golang.org/x/oauth2 v0.30.0 h1:dnDm7JmhM45NNpd8FDDeLhK6FwqbOf4MLCM9zb1BOHI=

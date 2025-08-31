@@ -3,3 +3,7 @@
 h1 {
     @apply text-5xl font-bold;
 }
+:root, html, body, #root {
+    width: 100%;
+    height: 100%;
+}

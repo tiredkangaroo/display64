@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/tiredkangaroo/display64/env"
 	"github.com/tiredkangaroo/display64/providers"
+	"github.com/tiredkangaroo/websocket"
 )
 
 func UseHandler(providers *providers.Providers) http.Handler {
@@ -43,6 +45,33 @@ func UseHandler(providers *providers.Providers) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Provider started successfully"))
+	})
+
+	mux.HandleFunc("GET /v1/imageURL", func(w http.ResponseWriter, r *http.Request) {
+		cors(w)
+
+		conn, err := websocket.AcceptHTTP(w, r)
+		if err != nil {
+			http.Error(w, "failed to upgrade to websocket: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if providers.LastImageURL != "" {
+			conn.Write(&websocket.Message{
+				Type: websocket.MessageText,
+				Data: []byte(providers.LastImageURL),
+			})
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		providers.NewImageURLFunc = func(url string) {
+			if err := conn.Write(&websocket.Message{
+				Type: websocket.MessageText,
+				Data: []byte(url),
+			}); err != nil {
+				providers.NewImageURLFunc = nil
+				cancel()
+			}
+		}
+		<-ctx.Done()
 	})
 
 	mux.HandleFunc("OPTIONS /", func(w http.ResponseWriter, r *http.Request) {
