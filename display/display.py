@@ -15,7 +15,7 @@ if not debug:
     options.cols = 64
     options.chain_length = 1
     options.parallel = 1
-    options.gpio_slowdown = 3
+    options.gpio_slowdown = 1
     options.pwm_dither_bits  = 1
     options.pwm_lsb_nanoseconds = 90
     options.hardware_mapping = 'adafruit-hat-pwm'

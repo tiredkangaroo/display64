@@ -1,9 +1,7 @@
 package display
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"math"
 	"net"
@@ -43,7 +41,7 @@ func (c *Connection) Ensure() error {
 }
 
 func (c *Connection) handleError(err error) {
-	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+	if err != nil {
 		c.Close()
 	}
 }
