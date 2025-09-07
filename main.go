@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/tiredkangaroo/display64/api"
 	"github.com/tiredkangaroo/display64/env"
@@ -37,7 +38,12 @@ func main() {
 
 	http.Handle("/api/", http.StripPrefix("/api", api.UseHandler(providers)))
 	http.Handle("/", http.FileServerFS(distFS))
-	go http.ListenAndServeTLS(":9000", env.DefaultEnvironment.CertFile, env.DefaultEnvironment.KeyFile, nil)
+	go func() {
+		if err := http.ListenAndServeTLS(":9000", env.DefaultEnvironment.CertFile, env.DefaultEnvironment.KeyFile, nil); err != nil {
+			slog.Error("running web server (fatal)", "error", err)
+			os.Exit(1)
+		}
+	}()
 
 	if err := providers.Start(providers.NoProvider); err != nil {
 		slog.Error("starting no provider (fatal)", "error", err)
