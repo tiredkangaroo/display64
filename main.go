@@ -37,7 +37,7 @@ func main() {
 
 	http.Handle("/api/", http.StripPrefix("/api", api.UseHandler(providers)))
 	http.Handle("/", http.FileServerFS(distFS))
-	go http.ListenAndServe(":9000", nil)
+	go http.ListenAndServeTLS(":9000", env.DefaultEnvironment.CertFile, env.DefaultEnvironment.KeyFile, nil)
 
 	if err := providers.Start(providers.NoProvider); err != nil {
 		slog.Error("starting no provider (fatal)", "error", err)
